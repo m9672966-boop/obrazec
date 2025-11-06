@@ -3,6 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const ExcelJS = require('exceljs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const multer = require('multer');
 const path = require('path');
 
 const app = express();
@@ -11,6 +12,19 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('.'));
+
+// Настройка Multer для загрузки фото
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Инициализация БД
 const db = new sqlite3.Database('samples.db');
@@ -24,7 +38,7 @@ db.serialize(() => {
     category TEXT,
     condition TEXT,
     comment TEXT,
-    photo TEXT,
+    photo_path TEXT,
     responsible TEXT,
     date DATE
   )`);
@@ -56,13 +70,15 @@ app.get('/api/samples', (req, res) => {
   });
 });
 
-// Добавление записи
-app.post('/api/samples', (req, res) => {
-  const { article, name, brand, category, condition, comment, photo, responsible, date } = req.body;
+// Добавление записи (с фото)
+app.post('/api/samples', upload.single('photo'), (req, res) => {
+  const { article, name, brand, category, condition, comment, responsible, date } = req.body;
+  const photoPath = req.file ? req.file.path : '';
+
   db.run(
-    `INSERT INTO samples (article, name, brand, category, condition, comment, photo, responsible, date)
+    `INSERT INTO samples (article, name, brand, category, condition, comment, photo_path, responsible, date)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [article, name, brand, category, condition, comment, photo, responsible, date],
+    [article, name, brand, category, condition, comment, photoPath, responsible, date],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ id: this.lastID });
@@ -71,12 +87,18 @@ app.post('/api/samples', (req, res) => {
 });
 
 // Обновление записи
-app.put('/api/samples/:id', (req, res) => {
+app.put('/api/samples/:id', upload.single('photo'), (req, res) => {
   const { id } = req.params;
-  const { article, name, brand, category, condition, comment, photo, responsible, date } = req.body;
+  const { article, name, brand, category, condition, comment, responsible, date } = req.body;
+  let photoPath = req.body.photo_path; // сохраняем старый путь, если фото не меняется
+
+  if (req.file) {
+    photoPath = req.file.path; // если новое фото загружено, используем его путь
+  }
+
   db.run(
-    `UPDATE samples SET article = ?, name = ?, brand = ?, category = ?, condition = ?, comment = ?, photo = ?, responsible = ?, date = ? WHERE id = ?`,
-    [article, name, brand, category, condition, comment, photo, responsible, date, id],
+    `UPDATE samples SET article = ?, name = ?, brand = ?, category = ?, condition = ?, comment = ?, photo_path = ?, responsible = ?, date = ? WHERE id = ?`,
+    [article, name, brand, category, condition, comment, photoPath, responsible, date, id],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ changes: this.changes });
@@ -126,7 +148,6 @@ app.get('/api/export-excel', async (req, res) => {
       { header: 'Категория', key: 'category', width: 20 },
       { header: 'Состояние', key: 'condition', width: 25 },
       { header: 'Комментарий', key: 'comment', width: 30 },
-      { header: 'Фото', key: 'photo', width: 15 },
       { header: 'Ответственный', key: 'responsible', width: 20 },
       { header: 'Дата', key: 'date', width: 12 }
     ];
