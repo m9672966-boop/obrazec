@@ -93,7 +93,7 @@ app.delete('/api/samples/:id', (req, res) => {
   });
 });
 
-// Экспорт в Excel (с фильтрацией)
+// Экспорт в Excel
 app.get('/api/export-excel', async (req, res) => {
   const { startDate, endDate } = req.query;
   let query = 'SELECT * FROM samples';
