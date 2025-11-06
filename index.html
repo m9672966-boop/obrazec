@@ -2,113 +2,135 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>Учёт готовых образцов</title>
+  <title>Учёт образцов</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 30px;
-      background: #f9f9f9;
-      color: #333;
-    }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      background: white;
-      padding: 25px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 10px 20px;
-      background: #27ae60;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      margin: 10px 0;
-    }
-    .btn:hover {
-      background: #219a52;
-    }
-    textarea {
-      width: 100%;
-      height: 180px;
-      font-family: monospace;
-      font-size: 14px;
-      padding: 10px;
-      margin: 10px 0;
-      box-sizing: border-box;
-    }
-    label {
-      display: block;
-      margin-top: 20px;
-      font-weight: bold;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+    h1 { text-align: center; margin-bottom: 20px; }
+    .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    input, select, button { padding: 8px; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f8f9fa; }
+    .actions { display: flex; gap: 5px; }
+    .btn { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; }
+    .btn-edit { background: #3498db; color: white; }
+    .btn-delete { background: #e74c3c; color: white; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Учёт готовых образцов</h1>
 
-    <a href="/api/export-sample-table" class="btn">📤 Скачать шаблон таблицы</a>
+    <!-- Фильтры -->
+    <div class="filters">
+      <input type="date" id="startDate" placeholder="С даты">
+      <input type="date" id="endDate" placeholder="По дату">
+      <button onclick="loadSamples()">Применить</button>
+      <a id="exportLink" class="btn" style="text-decoration: none; background: #27ae60; color: white; padding: 8px 16px; border-radius: 4px;" href="#">📥 Скачать Excel</a>
+    </div>
 
-    <label>Письмо при приёмке образцов от производства</label>
-    <textarea id="letter1" readonly>Добрый день!
+    <!-- Форма добавления -->
+    <div class="form-grid" id="addForm">
+      <input type="text" id="article" placeholder="Артикул">
+      <input type="text" id="name" placeholder="Название">
+      <input type="text" id="brand" placeholder="Торговая марка">
+      <select id="category">
+        <option value="Леонардо">Леонардо</option>
+        <option value="Сотрудникам">Сотрудникам</option>
+        <option value="Утиль">Утиль</option>
+      </select>
+      <input type="text" id="condition" placeholder="Состояние">
+      <input type="text" id="comment" placeholder="Комментарий">
+      <input type="text" id="photo" placeholder="Фото (ссылка)">
+      <input type="text" id="responsible" placeholder="Ответственный">
+      <input type="date" id="date">
+      <button onclick="addSample()">➕ Добавить</button>
+    </div>
 
-Сегодня получены и приняты следующие готовые образцы:
-— [артикул, название, количество]
-— [артикул, название, количество]
-
-Все образцы проверены, соответствуют требованиям и занесены в таблицу учёта.
-
-С уважением,
-[ФИО оформителя]
-Отдел оформления</textarea>
-
-    <label>Письмо о выявлении брака / износа</label>
-    <textarea id="letter2" readonly>Добрый день!
-
-При приёмке обнаружены следующие несоответствия:
-
-1. [Артикул] — [название] — [описание дефекта: грязь, разошедшаяся ткань и т.д.]
-2. [Артикул] — [название] — [описание дефекта]
-
-Просьба согласовать:
-— возврат на производство,
-— или списание с последующим бракованием в ТИС.
-
-Прилагаю фото и таблицу.
-
-С уважением,
-[ФИО оформителя]</textarea>
-
-    <label>Письмо арт-менеджеру о необходимости ремонта</label>
-    <textarea id="letter3" readonly>Добрый день!
-
-Образец [артикул, название] требует ремонта по причине: [подробное описание].
-
-Прилагаю фото и рекомендации по восстановлению.
-Прошу инициировать запрос в группу МК на расчёт стоимости ремонта или изготовления нового образца.
-
-С уважением,
-[ФИО оформителя]</textarea>
-
-    <label>Письмо в логистику — передача данных по коробам</label>
-    <textarea id="letter4" readonly>Добрый день, Григорий!
-
-Высылаю таблицу с содержимым коробов для выставки:
-— количество коробов: [N]
-— вложение: [название файла]
-
-Просьба подготовить ярлыки и согласовать дату погрузки.
-
-С уважением,
-[ФИО оформителя]</textarea>
-
+    <!-- Таблица -->
+    <div id="tableContainer"></div>
   </div>
+
+  <script>
+    let editingId = null;
+
+    function formatDate(dateStr) {
+      return dateStr ? dateStr.split('T')[0] : '';
+    }
+
+    function loadSamples() {
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      const url = `/api/samples?startDate=${start}&endDate=${end}`;
+      fetch(url)
+        .then(r => r.json())
+        .then(samples => {
+          let html = `<table><thead><tr>
+            <th>Артикул</th><th>Название</th><th>ТМ</th><th>Категория</th><th>Состояние</th>
+            <th>Комментарий</th><th>Фото</th><th>Ответственный</th><th>Дата</th><th>Действия</th>
+          </tr></thead><tbody>`;
+          samples.forEach(s => {
+            html += `<tr>
+              <td>${s.article || ''}</td>
+              <td>${s.name || ''}</td>
+              <td>${s.brand || ''}</td>
+              <td>${s.category || ''}</td>
+              <td>${s.condition || ''}</td>
+              <td>${s.comment || ''}</td>
+              <td>${s.photo || ''}</td>
+              <td>${s.responsible || ''}</td>
+              <td>${formatDate(s.date)}</td>
+              <td class="actions">
+                <button class="btn btn-edit" onclick="editSample(${s.id})">✏️</button>
+                <button class="btn btn-delete" onclick="deleteSample(${s.id})">🗑️</button>
+              </td>
+            </tr>`;
+          });
+          html += '</tbody></table>';
+          document.getElementById('tableContainer').innerHTML = html;
+
+          // Обновляем ссылку экспорта
+          const exportUrl = `/api/export-excel?startDate=${start}&endDate=${end}`;
+          document.getElementById('exportLink').href = exportUrl;
+        });
+    }
+
+    function addSample() {
+      const data = {
+        article: document.getElementById('article').value,
+        name: document.getElementById('name').value,
+        brand: document.getElementById('brand').value,
+        category: document.getElementById('category').value,
+        condition: document.getElementById('condition').value,
+        comment: document.getElementById('comment').value,
+        photo: document.getElementById('photo').value,
+        responsible: document.getElementById('responsible').value,
+        date: document.getElementById('date').value
+      };
+      fetch('/api/samples', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+        .then(() => {
+          loadSamples();
+          document.querySelectorAll('#addForm input, #addForm select').forEach(el => el.value = '');
+        });
+    }
+
+    function editSample(id) {
+      if (editingId === id) return;
+      editingId = id;
+      // Здесь можно реализовать редактирование inline или в модалке
+      alert('Редактирование записи ID=' + id + ' пока не реализовано полностью. Для MVP можно использовать удаление + повторное добавление.');
+    }
+
+    function deleteSample(id) {
+      if (!confirm('Удалить запись?')) return;
+      fetch(`/api/samples/${id}`, { method: 'DELETE' })
+        .then(() => loadSamples());
+    }
+
+    // Загрузка при старте
+    loadSamples();
+  </script>
 </body>
 </html>
