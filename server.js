@@ -7,11 +7,12 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Проверка email (опционально)
+// Проверка email
 const allowedDomains = ['panna.ru', 'firma-gamma.ru', 'sb-service.ru'];
 
 app.get('/api/export-sample-table', (req, res) => {
   const userEmail = req.headers['x-user-email'];
+  
   if (userEmail) {
     const domain = userEmail.split('@')[1];
     if (!allowedDomains.includes(domain)) {
@@ -35,7 +36,7 @@ app.get('/api/export-sample-table', (req, res) => {
     { header: 'Дата приёмки', key: 'date', width: 12 }
   ];
 
-  // Можно добавить пример строки
+  // Пример строки
   sheet.addRow({
     id: '',
     article: '',
@@ -52,7 +53,12 @@ app.get('/api/export-sample-table', (req, res) => {
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=Таблица_учёта_образцов.xlsx');
 
-  workbook.xlsx.write(res).then(() => res.end());
+  workbook.xlsx.write(res)
+    .then(() => res.end())
+    .catch(err => {
+      console.error('Ошибка генерации файла:', err);
+      res.status(500).send('Ошибка при создании файла');
+    });
 });
 
 app.listen(PORT, () => {
