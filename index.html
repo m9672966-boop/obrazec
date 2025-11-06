@@ -98,10 +98,16 @@
     </div>
 
     <!-- Форма добавления -->
-    <div class="form-grid">
+    <div class="form-grid" id="addForm">
       <input type="text" id="article" placeholder="Артикул">
       <input type="text" id="name" placeholder="Название">
-      <input type="text" id="brand" placeholder="Торговая марка">
+      <select id="brand">
+        <option value="">Выберите ТМ</option>
+        <option value="PANNA">PANNA</option>
+        <option value="KLART">KLART</option>
+        <option value="MIADOLLA">MIADOLLA</option>
+        <option value="FREYA">FREYA</option>
+      </select>
       <select id="category">
         <option value="Леонардо">Леонардо</option>
         <option value="Сотрудникам">Сотрудникам</option>
@@ -109,7 +115,7 @@
       </select>
       <input type="text" id="condition" placeholder="Состояние">
       <input type="text" id="comment" placeholder="Комментарий">
-      <input type="text" id="photo" placeholder="Фото (ссылка)">
+      <input type="file" id="photo" accept="image/*">
       <input type="text" id="responsible" placeholder="Ответственный">
       <input type="date" id="date">
       <button onclick="addSample()">➕ Добавить</button>
@@ -219,23 +225,28 @@
     }
 
     function addSample() {
-      const data = {
-        article: document.getElementById('article').value,
-        name: document.getElementById('name').value,
-        brand: document.getElementById('brand').value,
-        category: document.getElementById('category').value,
-        condition: document.getElementById('condition').value,
-        comment: document.getElementById('comment').value,
-        photo: document.getElementById('photo').value,
-        responsible: document.getElementById('responsible').value,
-        date: document.getElementById('date').value
-      };
-      fetch('/api/samples', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      const formData = new FormData();
+      formData.append('article', document.getElementById('article').value);
+      formData.append('name', document.getElementById('name').value);
+      formData.append('brand', document.getElementById('brand').value);
+      formData.append('category', document.getElementById('category').value);
+      formData.append('condition', document.getElementById('condition').value);
+      formData.append('comment', document.getElementById('comment').value);
+      formData.append('responsible', document.getElementById('responsible').value);
+      formData.append('date', document.getElementById('date').value);
+      
+      const photoInput = document.getElementById('photo');
+      if (photoInput.files.length > 0) {
+        formData.append('photo', photoInput.files[0]);
+      }
+
+      fetch('/api/samples', { method: 'POST', body: formData })
         .then(() => {
           loadSamples();
           document.querySelectorAll('input, select').forEach(el => {
             if (el.type !== 'checkbox') el.value = '';
           });
+          document.getElementById('photo').value = ''; // Очищаем поле файла
         });
     }
 
