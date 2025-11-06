@@ -1,51 +1,60 @@
-<script>
-  if (window.Addon) {
-    window.Addon.initialize({
-      card_buttons: function() {
-        return [{
-          text: '📤 Выгрузить таблицу учёта',
-          callback: function(ctx) {
-            const userEmail = ctx.user.email;
-            const allowedDomains = ['panna.ru', 'firma-gamma.ru', 'sb-service.ru'];
-            const userDomain = userEmail.split('@')[1];
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Kaiten Addon</title>
+  <script src="https://files.kaiten.ru/web-sdk/v1.min.js"></script>
+  <script>
+    if (window.Addon) {
+      window.Addon.initialize({
+        card_buttons: function() {
+          return [{
+            text: '📤 Выгрузить таблицу учёта',
+            callback: function(ctx) {
+              const userEmail = ctx.user.email;
+              const allowedDomains = ['panna.ru', 'firma-gamma.ru', 'sb-service.ru'];
+              const userDomain = userEmail.split('@')[1];
 
-            if (!allowedDomains.includes(userDomain)) {
-              alert('Доступ разрешён только сотрудникам компании.');
-              return;
+              if (!allowedDomains.includes(userDomain)) {
+                alert('Доступ разрешён только сотрудникам компании.');
+                return;
+              }
+
+              fetch('https://kaiten-samples-addon.onrender.com/api/export-sample-table', {
+                method: 'GET',
+                headers: { 'X-User-Email': userEmail }
+              })
+              .then(response => {
+                if (!response.ok) throw new Error('Ошибка сервера');
+                return response.blob();
+              })
+              .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Таблица_учёта_образцов_${new Date().toISOString().slice(0,10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                // Открываем письмо
+                const subject = encodeURIComponent('Таблица учёта готовых образцов');
+                const body = encodeURIComponent(
+                  'Добрый день!\n\nВо вложении — шаблон таблицы учёта готовых образцов для заполнения.\n\nС уважением,'
+                );
+                window.open(`mailto:${userEmail}?subject=${subject}&body=${body}`);
+              })
+              .catch(err => {
+                console.error(err);
+                alert('Не удалось сгенерировать файл. Обратитесь к администратору.');
+              });
             }
-
-            fetch('https://kaiten-samples-addon.onrender.com/api/export-sample-table', {
-              method: 'GET',
-              headers: { 'X-User-Email': userEmail }
-            })
-            .then(response => {
-              if (!response.ok) throw new Error('Ошибка сервера');
-              return response.blob();
-            })
-            .then(blob => {
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `Таблица_учёта_образцов_${new Date().toISOString().slice(0,10)}.xlsx`;
-              document.body.appendChild(a);
-              a.click();
-              window.URL.revokeObjectURL(url);
-              a.remove();
-
-              // Открываем письмо
-              const subject = encodeURIComponent('Таблица учёта готовых образцов');
-              const body = encodeURIComponent(
-                'Добрый день!\n\nВо вложении — шаблон таблицы учёта готовых образцов для заполнения.\n\nС уважением,'
-              );
-              window.open(`mailto:${userEmail}?subject=${subject}&body=${body}`);
-            })
-            .catch(err => {
-              console.error(err);
-              alert('Не удалось сгенерировать файл. Обратитесь к администратору.');
-            });
-          }
-        }];
-      }
-    });
-  }
-</script>
+          }];
+        }
+      });
+    }
+  </script>
+</head>
+<body></body>
+</html>
