@@ -2,21 +2,87 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>Учёт образцов</title>
+  <title>Учёт готовых образцов</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
-    h1 { text-align: center; margin-bottom: 20px; }
-    .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    input, select, button { padding: 8px; font-size: 14px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-    th { background: #f8f9fa; }
-    .actions { display: flex; gap: 5px; }
-    .btn { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    input, select, button {
+      padding: 8px;
+      font-size: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #f8f9fa;
+    }
+    .actions {
+      display: flex;
+      gap: 5px;
+    }
+    .btn {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+    }
     .btn-edit { background: #3498db; color: white; }
     .btn-delete { background: #e74c3c; color: white; }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+    textarea {
+      width: 100%;
+      height: 180px;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 10px;
+      margin: 10px 0;
+      box-sizing: border-box;
+    }
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .selected-info {
+      background: #e8f5e8;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -32,7 +98,7 @@
     </div>
 
     <!-- Форма добавления -->
-    <div class="form-grid" id="addForm">
+    <div class="form-grid">
       <input type="text" id="article" placeholder="Артикул">
       <input type="text" id="name" placeholder="Название">
       <input type="text" id="brand" placeholder="Торговая марка">
@@ -51,10 +117,32 @@
 
     <!-- Таблица -->
     <div id="tableContainer"></div>
+
+    <!-- Выбранные строки -->
+    <div class="selected-info" id="selectedInfo" style="display: none;">
+      Выбрано: <span id="selectedCount">0</span> записей
+      <button onclick="clearSelection()">Очистить выбор</button>
+    </div>
+
+    <!-- Шаблоны писем -->
+    <label>Письмо при приёмке от производства</label>
+    <textarea id="letter1" readonly></textarea>
+
+    <label>Письмо о браке / износе</label>
+    <textarea id="letter2" readonly></textarea>
+
+    <label>Письмо арт-менеджеру о ремонте</label>
+    <textarea id="letter3" readonly></textarea>
+
+    <label>Письмо в логистику (короба)</label>
+    <textarea id="letter4" readonly></textarea>
+
+    <button onclick="fillLetters()">🔄 Заполнить письма выбранными артикулами</button>
   </div>
 
   <script>
-    let editingId = null;
+    let samples = [];
+    let selectedIds = new Set();
 
     function formatDate(dateStr) {
       return dateStr ? dateStr.split('T')[0] : '';
@@ -66,35 +154,68 @@
       const url = `/api/samples?startDate=${start}&endDate=${end}`;
       fetch(url)
         .then(r => r.json())
-        .then(samples => {
-          let html = `<table><thead><tr>
-            <th>Артикул</th><th>Название</th><th>ТМ</th><th>Категория</th><th>Состояние</th>
-            <th>Комментарий</th><th>Фото</th><th>Ответственный</th><th>Дата</th><th>Действия</th>
-          </tr></thead><tbody>`;
-          samples.forEach(s => {
-            html += `<tr>
-              <td>${s.article || ''}</td>
-              <td>${s.name || ''}</td>
-              <td>${s.brand || ''}</td>
-              <td>${s.category || ''}</td>
-              <td>${s.condition || ''}</td>
-              <td>${s.comment || ''}</td>
-              <td>${s.photo || ''}</td>
-              <td>${s.responsible || ''}</td>
-              <td>${formatDate(s.date)}</td>
-              <td class="actions">
-                <button class="btn btn-edit" onclick="editSample(${s.id})">✏️</button>
-                <button class="btn btn-delete" onclick="deleteSample(${s.id})">🗑️</button>
-              </td>
-            </tr>`;
-          });
-          html += '</tbody></table>';
-          document.getElementById('tableContainer').innerHTML = html;
-
-          // Обновляем ссылку экспорта
-          const exportUrl = `/api/export-excel?startDate=${start}&endDate=${end}`;
-          document.getElementById('exportLink').href = exportUrl;
+        .then(data => {
+          samples = data;
+          renderTable();
+          updateExportLink();
         });
+    }
+
+    function renderTable() {
+      let html = `<table><thead><tr>
+        <th><input type="checkbox" id="selectAll" onchange="toggleAll(this.checked)"></th>
+        <th>Артикул</th><th>Название</th><th>ТМ</th><th>Категория</th><th>Состояние</th>
+        <th>Комментарий</th><th>Ответственный</th><th>Дата</th><th>Действия</th>
+      </tr></thead><tbody>`;
+      samples.forEach(s => {
+        const checked = selectedIds.has(s.id) ? 'checked' : '';
+        html += `<tr>
+          <td><input type="checkbox" ${checked} onchange="toggleRow(${s.id}, this.checked)"></td>
+          <td>${s.article || ''}</td>
+          <td>${s.name || ''}</td>
+          <td>${s.brand || ''}</td>
+          <td>${s.category || ''}</td>
+          <td>${s.condition || ''}</td>
+          <td>${s.comment || ''}</td>
+          <td>${s.responsible || ''}</td>
+          <td>${formatDate(s.date)}</td>
+          <td class="actions">
+            <button class="btn btn-edit" onclick="editSample(${s.id})">✏️</button>
+            <button class="btn btn-delete" onclick="deleteSample(${s.id})">🗑️</button>
+          </td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('tableContainer').innerHTML = html;
+      updateSelectionInfo();
+    }
+
+    function toggleAll(checked) {
+      selectedIds.clear();
+      if (checked) {
+        samples.forEach(s => selectedIds.add(s.id));
+      }
+      renderTable();
+    }
+
+    function toggleRow(id, checked) {
+      if (checked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+      updateSelectionInfo();
+    }
+
+    function updateSelectionInfo() {
+      const count = selectedIds.size;
+      document.getElementById('selectedCount').textContent = count;
+      document.getElementById('selectedInfo').style.display = count > 0 ? 'block' : 'none';
+    }
+
+    function clearSelection() {
+      selectedIds.clear();
+      renderTable();
     }
 
     function addSample() {
@@ -112,21 +233,89 @@
       fetch('/api/samples', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
         .then(() => {
           loadSamples();
-          document.querySelectorAll('#addForm input, #addForm select').forEach(el => el.value = '');
+          document.querySelectorAll('input, select').forEach(el => {
+            if (el.type !== 'checkbox') el.value = '';
+          });
         });
-    }
-
-    function editSample(id) {
-      if (editingId === id) return;
-      editingId = id;
-      // Здесь можно реализовать редактирование inline или в модалке
-      alert('Редактирование записи ID=' + id + ' пока не реализовано полностью. Для MVP можно использовать удаление + повторное добавление.');
     }
 
     function deleteSample(id) {
       if (!confirm('Удалить запись?')) return;
       fetch(`/api/samples/${id}`, { method: 'DELETE' })
         .then(() => loadSamples());
+    }
+
+    function editSample(id) {
+      alert('Редактирование в MVP реализуется через удаление + повторное добавление.');
+    }
+
+    function updateExportLink() {
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      const url = `/api/export-excel?startDate=${start}&endDate=${end}`;
+      document.getElementById('exportLink').href = url;
+    }
+
+    function fillLetters() {
+      if (selectedIds.size === 0) {
+        alert('Выберите хотя бы одну запись');
+        return;
+      }
+
+      const selected = samples.filter(s => selectedIds.has(s.id));
+      const lines = selected.map(s => `— [${s.article}] ${s.name} — ${s.condition || 'без дефектов'}`).join('\n');
+
+      document.getElementById('letter1').value = `Добрый день!
+
+Сегодня получены и приняты следующие готовые образцы:
+${lines}
+
+Все образцы проверены, соответствуют требованиям и занесены в таблицу учёта.
+
+С уважением,
+[ФИО оформителя]
+Отдел оформления`;
+
+      document.getElementById('letter2').value = `Добрый день!
+
+При приёмке обнаружены следующие несоответствия:
+
+${lines}
+
+Просьба согласовать:
+— возврат на производство,
+— или списание с последующим бракованием в ТИС.
+
+Прилагаю фото и таблицу.
+
+С уважением,
+[ФИО оформителя]`;
+
+      document.getElementById('letter3').value = `Добрый день!
+
+Образцы требуют ремонта по причине: [подробное описание].
+
+${lines}
+
+Прилагаю фото и рекомендации по восстановлению.
+Прошу инициировать запрос в группу МК на расчёт стоимости ремонта или изготовления нового образца.
+
+С уважением,
+[ФИО оформителя]`;
+
+      document.getElementById('letter4').value = `Добрый день, Григорий!
+
+Высылаю таблицу с содержимым коробов для выставки:
+— количество коробов: [N]
+— вложение: [название файла]
+
+Список образцов:
+${lines}
+
+Просьба подготовить ярлыки и согласовать дату погрузки.
+
+С уважением,
+[ФИО оформителя]`;
     }
 
     // Загрузка при старте
