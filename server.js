@@ -7,14 +7,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.static('.'));
+app.use(express.static('.')); // Раздаём файлы из корня проекта
 
-// Главная страница
+// Главная страница — отдаём index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Генерация Excel-шаблона
+// API для генерации Excel
 app.get('/api/export-sample-table', (req, res) => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Учёт образцов');
@@ -32,6 +32,7 @@ app.get('/api/export-sample-table', (req, res) => {
     { header: 'Дата приёмки', key: 'date', width: 12 }
   ];
 
+  // Пример строки
   sheet.addRow({
     id: '',
     article: '',
